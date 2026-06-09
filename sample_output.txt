@@ -1,0 +1,134 @@
+══════════════════════════════════════════════════
+  CYBERSENTINEL — Investigation Started
+══════════════════════════════════════════════════
+
+  🧠 Claude reasoning... (step 1)
+
+  💬 I can see a suspicious email with an unrecognised sender domain and a shortened URL.
+     Starting with email header analysis, then scanning the embedded link.
+
+  🔧 [analyse_email_headers] called with:
+  {
+    "email_text": "From: support@paypa1.com\nReply-To: noreply@phish-tracker.ru\nSubject: Action Required\n\nDear Customer,\n\nYour PayPal account has been suspended due to unusual activity.\nClick here immediately to verify: http://bit.ly/3xK9mQ2\nYou have 24 hours before your account is permanently deleted.\n\n- PayPal Support Team"
+  }
+  ✅ Result preview: {
+    "sender_domain": "paypa1.com",
+    "reply_to_domain": "phish-tracker.ru",
+    "domain_mismatch": true,
+    "urgency_keywords_found": ["immediately", "suspended", "24 hours", "click here", "your account", "unusual activity"],
+    "embedded_urls": ["http://bit.ly/3xK9mQ2"],
+    "suspicious_signals": [
+      "Sender domain (paypa1.com) ≠ Reply-To domain (phish-tracker.ru)",
+      "High urgency language detected: 6 trigger words",
+      "Shortened/obfuscated URL detected: http://bit.ly/3xK9mQ2",
+      "Lookalike brand domain detected: 'paypa1' (impersonating paypal)"
+    ],
+    "lookalike_domain_detected": true,
+    "total_suspicious_signals": 4,
+    "risk_estimate": "HIGH"
+  }...
+
+  🧠 Claude reasoning... (step 2)
+
+  💬 Email analysis confirms high risk — lookalike PayPal domain, reply-to mismatch, 
+     and a shortened URL. Scanning the URL with URLScan.io now.
+
+  🔧 [scan_url] called with:
+  {
+    "url": "http://bit.ly/3xK9mQ2"
+  }
+  [URLScan] Scan submitted. Waiting 15s for results...
+  ✅ Result preview: {
+    "url_scanned": "http://bit.ly/3xK9mQ2",
+    "domain": "paypa1-login.ru",
+    "ip": "185.220.101.47",
+    "country": "RU",
+    "malicious": true,
+    "score": 87,
+    "categories": ["phishing", "credential-harvesting"],
+    "redirect_chain": [
+      "http://bit.ly/3xK9mQ2",
+      "http://paypa1-login.ru/verify",
+      "http://paypa1-login.ru/login.php"
+    ],
+    "result_link": "https://urlscan.io/result/a3f9b21c-4d87-4e2a-b91f-0d38c7e2f451/"
+  }...
+
+  🧠 Claude reasoning... (step 3)
+
+  💬 URL resolves to paypa1-login.ru — a credential harvesting page, registered in Russia.
+     Running VirusTotal cross-check on this domain.
+
+  🔧 [check_virustotal] called with:
+  {
+    "target": "paypa1-login.ru"
+  }
+  ✅ Result preview: {
+    "target": "paypa1-login.ru",
+    "malicious_count": 34,
+    "suspicious_count": 8,
+    "total_engines": 87,
+    "clean_count": 45,
+    "reputation_score": -85,
+    "flagging_vendors": [
+      {"vendor": "Kaspersky", "result": "HEUR:Trojan.Script.Generic"},
+      {"vendor": "Fortinet", "result": "Phishing"},
+      {"vendor": "ESET", "result": "Phishing"},
+      {"vendor": "BitDefender", "result": "Phishing.GenericRSS"},
+      {"vendor": "Avast", "result": "Phishing"}
+    ],
+    "threat_verdict": "CRITICAL"
+  }...
+
+  🧠 Claude reasoning... (step 4)
+
+  💬 34/87 engines confirm this as phishing. Evidence is conclusive. Generating final report.
+
+  🔧 [generate_threat_report] called with all collected findings.
+
+══════════════════════════════════════════════════
+      CYBERSENTINEL THREAT REPORT
+══════════════════════════════════════════════════
+
+Threat Level     : CRITICAL 🔴
+
+── Email Analysis ──
+  Sender Domain    : paypa1.com
+  Domain Mismatch  : YES ⚠️
+  Urgency Keywords : immediately, suspended, 24 hours, click here, your account, unusual activity
+  Embedded URLs    : 1
+  Signals:
+    • Sender domain (paypa1.com) ≠ Reply-To domain (phish-tracker.ru)
+    • High urgency language detected: 6 trigger words
+    • Shortened/obfuscated URL detected: http://bit.ly/3xK9mQ2
+    • Lookalike brand domain detected: 'paypa1' (impersonating paypal)
+
+── URL Scan (URLScan.io) ──
+  Domain           : paypa1-login.ru
+  Country          : RU
+  Malicious Flag   : YES ⚠️
+  Risk Score       : 87
+  Full Report      : https://urlscan.io/result/a3f9b21c-4d87-4e2a-b91f-0d38c7e2f451/
+
+── VirusTotal Analysis ──
+  Target           : paypa1-login.ru
+  Engines Checked  : 87
+  Malicious Flags  : 34
+  Suspicious Flags : 8
+  VT Verdict       : CRITICAL
+  Flagged by:
+    • Kaspersky: HEUR:Trojan.Script.Generic
+    • Fortinet: Phishing
+    • ESET: Phishing
+    • BitDefender: Phishing.GenericRSS
+    • Avast: Phishing
+
+── Recommended Action ──
+  🚨 DO NOT CLICK any links. Block sender immediately.
+     Report to IT Security / Cybersecurity team.
+     Delete email. Do not forward.
+
+══════════════════════════════════════════════════
+
+  Investigation complete.
+══════════════════════════════════════════════════

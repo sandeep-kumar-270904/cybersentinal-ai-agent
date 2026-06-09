@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberSentinel — AI Threat Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:         #0a0e1a;
+    --surface:    #111827;
+    --surface2:   #1a2338;
+    --border:     #1e2d45;
+    --green:      #00ff88;
+    --green-dim:  #00c96a;
+    --green-mute: rgba(0,255,136,0.08);
+    --red:        #ff3b3b;
+    --amber:      #ffb800;
+    --blue:       #4d9fff;
+    --text:       #c9d1e0;
+    --muted:      #506080;
+    --mono:       'JetBrains Mono', monospace;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  .shell {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+
+  /* ── Header ── */
+  .hdr {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .hdr-logo {
+    width: 40px; height: 40px;
+    border: 2px solid var(--green);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    box-shadow: 0 0 12px rgba(0,255,136,0.3);
+  }
+  .hdr-title { font-size: 18px; font-weight: 700; color: var(--green); letter-spacing: 0.05em; }
+  .hdr-sub   { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+  .hdr-badge {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── Input panel ── */
+  .input-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .input-panel-hdr {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+  .input-label {
+    margin-left: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+  .demo-btn {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .demo-btn:hover { border-color: var(--green); color: var(--green); }
+
+  textarea#threat-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 16px;
+    resize: vertical;
+    min-height: 120px;
+    caret-color: var(--green);
+  }
+  textarea#threat-input::placeholder { color: var(--muted); }
+
+  .input-footer {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    gap: 12px;
+  }
+  .char-count { font-size: 11px; color: var(--muted); }
+
+  .analyse-btn {
+    margin-left: auto;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--green);
+    color: #000;
+    border: none;
+    padding: 8px 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .analyse-btn:hover { background: var(--green-dim); }
+  .analyse-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── Agent feed ── */
+  #agent-feed { display: none; }
+  #agent-feed.visible { display: block; }
+
+  .feed-hdr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .feed-hdr-line { flex: 1; height: 1px; background: var(--border); }
+
+  .pulse-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+  .pulse-dot.done { animation: none; background: var(--muted); box-shadow: none; }
+
+  /* ── Step cards ── */
+  .step-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    animation: slide-in 0.2s ease-out;
+  }
+  @keyframes slide-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .step-card-hdr {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .step-card-hdr:hover { background: var(--surface2); }
+
+  .step-icon { font-size: 14px; width: 20px; text-align: center; }
+  .step-title { font-size: 12px; font-weight: 500; flex: 1; }
+  .step-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+  }
+  .badge-reasoning { background: rgba(77,159,255,0.15); color: var(--blue); border: 1px solid rgba(77,159,255,0.3); }
+  .badge-tool      { background: rgba(255,184,0,0.12);  color: var(--amber); border: 1px solid rgba(255,184,0,0.3); }
+  .badge-result    { background: rgba(0,255,136,0.1);   color: var(--green); border: 1px solid rgba(0,255,136,0.25); }
+  .badge-waiting   { background: rgba(80,96,128,0.2);   color: var(--muted); border: 1px solid var(--border); }
+
+  .chevron { margin-left: 4px; font-size: 11px; color: var(--muted); transition: transform 0.2s; }
+  .step-card.open .chevron { transform: rotate(90deg); }
+
+  .step-card-body {
+    display: none;
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .step-card.open .step-card-body { display: block; }
+
+  .step-text {
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  pre.code-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    font-size: 11px;
+    color: var(--green-dim);
+    overflow-x: auto;
+    line-height: 1.6;
+    white-space: pre;
+    margin-top: 8px;
+  }
+
+  /* ── KV rows inside tool results ── */
+  .kv-grid {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 4px 12px;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  .kv-key  { color: var(--muted); }
+  .kv-val  { color: var(--text); word-break: break-all; }
+  .kv-val.danger  { color: var(--red); font-weight: 700; }
+  .kv-val.warn    { color: var(--amber); }
+  .kv-val.safe    { color: var(--green); }
+
+  /* ── Final report ── */
+  #report-panel {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 24px;
+    animation: slide-in 0.3s ease-out;
+  }
+  #report-panel.visible { display: block; }
+
+  .report-hdr {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  .report-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; }
+
+  .threat-badge {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+    margin-left: auto;
+  }
+  .threat-CRITICAL { background: rgba(255,59,59,0.2);  color: var(--red);   border: 1px solid rgba(255,59,59,0.5); }
+  .threat-HIGH     { background: rgba(255,184,0,0.15); color: var(--amber); border: 1px solid rgba(255,184,0,0.4); }
+  .threat-MEDIUM   { background: rgba(255,184,0,0.08); color: var(--amber); border: 1px solid rgba(255,184,0,0.25); }
+  .threat-LOW      { background: rgba(0,255,136,0.08); color: var(--green); border: 1px solid rgba(0,255,136,0.2); }
+
+  .report-body { padding: 20px; }
+
+  .report-section { margin-bottom: 20px; }
+  .report-section-title {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .signal-item {
+    display: flex;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .signal-item:last-child { border-bottom: none; }
+  .signal-bullet { color: var(--red); font-weight: 700; flex-shrink: 0; }
+
+  .vt-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .vt-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--red), #ff6b35);
+    border-radius: 3px;
+    transition: width 1s ease-out;
+  }
+
+  .recommendation-box {
+    background: rgba(255,59,59,0.06);
+    border: 1px solid rgba(255,59,59,0.2);
+    border-radius: 6px;
+    padding: 14px 16px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+  .recommendation-box.safe {
+    background: rgba(0,255,136,0.05);
+    border-color: rgba(0,255,136,0.2);
+  }
+
+  /* ── Thinking indicator ── */
+  .thinking-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .typing-dots span {
+    display: inline-block;
+    width: 4px; height: 4px;
+    background: var(--muted);
+    border-radius: 50%;
+    margin: 0 1px;
+    animation: blink 1.2s infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,80%,100% { opacity:0.2; } 40% { opacity:1; } }
+
+  /* ── Reset button ── */
+  .reset-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 16px;
+    letter-spacing: 0.06em;
+  }
+  .reset-btn:hover { border-color: var(--text); color: var(--text); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-logo">🛡️</div>
+    <div>
+      <div class="hdr-title">CYBERSENTINEL</div>
+      <div class="hdr-sub">Agentic AI Threat Analysis · Powered by Claude</div>
+    </div>
+    <div class="hdr-badge">v1.0 · ANITS 2027</div>
+  </div>
+
+  <!-- Input Panel -->
+  <div class="input-panel" id="input-panel">
+    <div class="input-panel-hdr">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+      <span class="input-label">threat_input.txt — paste suspicious email or URL</span>
+      <button class="demo-btn" onclick="loadDemo()">⚡ Load demo</button>
+    </div>
+    <textarea id="threat-input" placeholder="Paste a suspicious email (with headers, body, links) or a URL you want analysed...
+
+Example:
+From: support@paypa1.com
+Subject: Urgent: Your account is suspended
+Click here: http://bit.ly/3xK9mQ2" oninput="updateCount()"></textarea>
+    <div class="input-footer">
+      <span class="char-count" id="char-count">0 chars</span>
+      <button class="analyse-btn" id="analyse-btn" onclick="startAnalysis()">▶ Analyse Threat</button>
+    </div>
+  </div>
+
+  <!-- Agent Feed -->
+  <div id="agent-feed">
+    <div class="feed-hdr">
+      <div class="feed-hdr-line"></div>
+      <div class="pulse-dot" id="pulse-dot"></div>
+      <span id="feed-status">Agent investigating</span>
+      <div class="feed-hdr-line"></div>
+    </div>
+    <div id="steps-container"></div>
+    <div id="thinking-indicator" class="thinking-row" style="display:none">
+      <span>Claude reasoning</span>
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+
+  <!-- Final Report -->
+  <div id="report-panel">
+    <div class="report-hdr">
+      <span>🔍</span>
+      <span class="report-title">THREAT REPORT</span>
+      <span class="threat-badge" id="threat-level-badge">—</span>
+    </div>
+    <div class="report-body" id="report-body"></div>
+  </div>
+
+  <button class="reset-btn" id="reset-btn" style="display:none" onclick="resetUI()">↺ New investigation</button>
+
+</div>
+
+<script>
+const DEMO_INPUT = `From: support@paypa1.com
+Reply-To: noreply@harvest-cred.ru
+Subject: [URGENT] Your PayPal account will be suspended in 24 hours
+
+Dear Valued Customer,
+
+We have detected unauthorized access to your PayPal account.
+Your account will be permanently suspended unless you verify immediately.
+
+Click here to verify your account now: http://bit.ly/3xK9mQ2
+
+You have 24 hours before your account is permanently deleted.
+Do not ignore this message.
+
+- PayPal Security Team`;
+
+function loadDemo() {
+  document.getElementById('threat-input').value = DEMO_INPUT;
+  updateCount();
+}
+
+function updateCount() {
+  const len = document.getElementById('threat-input').value.length;
+  document.getElementById('char-count').textContent = `${len} chars`;
+}
+
+function makeCard(icon, title, badgeText, badgeClass, bodyHTML, open = false) {
+  const id = 'card-' + Date.now() + Math.random();
+  const card = document.createElement('div');
+  card.className = 'step-card' + (open ? ' open' : '');
+  card.innerHTML = `
+    <div class="step-card-hdr" onclick="toggleCard('${id}')">
+      <span class="step-icon">${icon}</span>
+      <span class="step-title">${title}</span>
+      <span class="step-badge ${badgeClass}">${badgeText}</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="step-card-body">${bodyHTML}</div>
+  `;
+  card.id = id;
+  return card;
+}
+
+function toggleCard(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function kvRow(key, val, cls='') {
+  return `<div class="kv-key">${key}</div><div class="kv-val ${cls}">${val}</div>`;
+}
+
+function renderEmailResult(result) {
+  const risk = result.risk_estimate || 'LOW';
+  const cls = risk === 'HIGH' ? 'danger' : risk === 'MEDIUM' ? 'warn' : 'safe';
+  let html = `<div class="kv-grid">
+    ${kvRow('Sender domain', result.sender_domain || '—')}
+    ${kvRow('Reply-To domain', result.reply_to_domain || '—')}
+    ${kvRow('Domain mismatch', result.domain_mismatch ? '⚠️ YES' : 'No', result.domain_mismatch ? 'danger' : '')}
+    ${kvRow('Urgency keywords', (result.urgency_keywords_found || []).join(', ') || 'None', result.urgency_keywords_found?.length ? 'warn' : '')}
+    ${kvRow('Embedded URLs', result.embedded_urls?.length || 0)}
+    ${kvRow('Risk estimate', risk, cls)}
+  </div>`;
+  if (result.suspicious_signals?.length) {
+    html += `<div style="margin-top:12px;font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:0.08em">SIGNALS DETECTED</div>`;
+    result.suspicious_signals.forEach(s => {
+      html += `<div class="signal-item"><span class="signal-bullet">▸</span><span>${s}</span></div>`;
+    });
+  }
+  return html;
+}
+
+function renderURLResult(result) {
+  if (result.error) return `<div class="step-text" style="color:var(--muted)">${result.error}</div>`;
+  if (result.status === 'scan_pending') return `<div class="step-text">Scan submitted. <a href="${result.result_link}" target="_blank" style="color:var(--blue)">${result.result_link}</a></div>`;
+  const malCls = result.malicious ? 'danger' : 'safe';
+  return `<div class="kv-grid">
+    ${kvRow('Domain', result.domain || '—')}
+    ${kvRow('Country', result.country || '—')}
+    ${kvRow('IP', result.ip || '—')}
+    ${kvRow('Malicious', result.malicious ? '⚠️ YES' : '✓ No', malCls)}
+    ${kvRow('Risk score', result.score ?? '—', result.score > 50 ? 'danger' : result.score > 20 ? 'warn' : '')}
+    ${kvRow('Full report', result.result_link ? `<a href="${result.result_link}" target="_blank" style="color:var(--blue)">URLScan.io ↗</a>` : '—')}
+  </div>`;
+}
+
+function renderVTResult(result) {
+  if (result.error) return `<div class="step-text" style="color:var(--muted)">${result.error}</div>`;
+  const pct = result.total_engines > 0 ? Math.round((result.malicious_count / result.total_engines) * 100) : 0;
+  const cls = result.malicious_count >= 10 ? 'danger' : result.malicious_count >= 2 ? 'warn' : 'safe';
+  let html = `<div class="kv-grid">
+    ${kvRow('Target', result.target || '—')}
+    ${kvRow('Malicious flags', `${result.malicious_count} / ${result.total_engines} engines`, cls)}
+    ${kvRow('Suspicious', result.suspicious_count || 0)}
+    ${kvRow('Verdict', result.threat_verdict || '—', cls)}
+  </div>
+  <div class="vt-bar" style="margin-top:12px"><div class="vt-fill" style="width:${pct}%"></div></div>
+  <div style="font-size:10px;color:var(--muted);margin-top:4px">${pct}% of engines flagged</div>`;
+  if (result.flagging_vendors?.length) {
+    html += `<div style="margin-top:12px;font-size:11px;color:var(--muted);margin-bottom:4px;letter-spacing:0.08em">TOP FLAGGING ENGINES</div>`;
+    result.flagging_vendors.slice(0,5).forEach(v => {
+      html += `<div class="signal-item"><span class="signal-bullet" style="color:var(--red)">▸</span><span>${v.vendor}: <span style="color:var(--red)">${v.result}</span></span></div>`;
+    });
+  }
+  return html;
+}
+
+function renderFinalReport(findings) {
+  const ea = findings.email_analysis || {};
+  const us = findings.url_scan || {};
+  const vt = findings.virustotal || {};
+
+  // Determine threat level
+  let score = 1;
+  if (ea.risk_estimate === 'HIGH') score = Math.max(score, 3);
+  if (ea.risk_estimate === 'MEDIUM') score = Math.max(score, 2);
+  if (vt.malicious_count >= 10) score = Math.max(score, 4);
+  else if (vt.malicious_count >= 5) score = Math.max(score, 3);
+  else if (vt.malicious_count >= 1) score = Math.max(score, 2);
+  if (us.malicious) score = Math.max(score, 4);
+
+  const levels = {4:'CRITICAL',3:'HIGH',2:'MEDIUM',1:'LOW'};
+  const level = levels[score];
+
+  // Set badge
+  const badge = document.getElementById('threat-level-badge');
+  badge.textContent = level;
+  badge.className = `threat-badge threat-${level}`;
+
+  let html = '';
+
+  // Email section
+  if (ea.suspicious_signals?.length) {
+    html += `<div class="report-section">
+      <div class="report-section-title">Email Threat Signals</div>`;
+    ea.suspicious_signals.forEach(s => {
+      html += `<div class="signal-item"><span class="signal-bullet">▸</span><span>${s}</span></div>`;
+    });
+    html += `</div>`;
+  }
+
+  // URL section
+  if (us.domain) {
+    html += `<div class="report-section">
+      <div class="report-section-title">URL / Domain Analysis</div>
+      <div class="kv-grid">
+        ${kvRow('Resolved domain', us.domain)}
+        ${kvRow('Hosted in', us.country || '—')}
+        ${kvRow('Malicious flag', us.malicious ? '⚠️ YES' : '✓ No', us.malicious ? 'danger' : 'safe')}
+      </div>
+    </div>`;
+  }
+
+  // VT section
+  if (vt.total_engines) {
+    const pct = Math.round((vt.malicious_count / vt.total_engines) * 100);
+    html += `<div class="report-section">
+      <div class="report-section-title">VirusTotal — ${vt.malicious_count}/${vt.total_engines} engines flagged</div>
+      <div class="vt-bar"><div class="vt-fill" id="rpt-vt-bar" style="width:0%"></div></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;margin-bottom:10px">${pct}% detection rate</div>`;
+    if (vt.flagging_vendors?.length) {
+      vt.flagging_vendors.slice(0,5).forEach(v => {
+        html += `<div class="signal-item"><span class="signal-bullet" style="color:var(--red)">▸</span><span>${v.vendor}: <span style="color:var(--red)">${v.result}</span></span></div>`;
+      });
+    }
+    html += `</div>`;
+  }
+
+  // Recommendation
+  const recTexts = {
+    4: '🚨 Do not click any links. Block the sender immediately. Report to IT Security. Delete this email.',
+    3: '⚠️ High risk detected. Do not click links. Verify sender through official channels before taking any action.',
+    2: '⚠️ Medium risk. Treat with caution. Verify sender identity independently before responding.',
+    1: '✅ No strong threat indicators detected. Standard email hygiene applies. Remain cautious.'
+  };
+  const recCls = score <= 1 ? 'recommendation-box safe' : 'recommendation-box';
+  html += `<div class="report-section">
+    <div class="report-section-title">Recommended Action</div>
+    <div class="${recCls}">${recTexts[score]}</div>
+  </div>`;
+
+  document.getElementById('report-body').innerHTML = html;
+  document.getElementById('report-panel').classList.add('visible');
+
+  // Animate VT bar
+  setTimeout(() => {
+    const bar = document.getElementById('rpt-vt-bar');
+    if (bar && vt.total_engines) {
+      const pct = Math.round((vt.malicious_count / vt.total_engines) * 100);
+      bar.style.width = pct + '%';
+    }
+  }, 100);
+}
+
+async function startAnalysis() {
+  const input = document.getElementById('threat-input').value.trim();
+  if (!input) return;
+
+  // Hide input, show feed
+  document.getElementById('input-panel').style.display = 'none';
+  document.getElementById('agent-feed').classList.add('visible');
+  document.getElementById('analyse-btn').disabled = true;
+  document.getElementById('thinking-indicator').style.display = 'flex';
+  document.getElementById('reset-btn').style.display = 'none';
+
+  const container = document.getElementById('steps-container');
+  container.innerHTML = '';
+
+  const es = await fetch('/analyse', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({input})
+  });
+
+  const reader = es.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let lastFindings = {};
+
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, {stream: true});
+
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    let currentEvent = null;
+    let currentData = null;
+
+    for (const line of lines) {
+      if (line.startsWith('event: ')) {
+        currentEvent = line.slice(7).trim();
+      } else if (line.startsWith('data: ') && currentEvent) {
+        try {
+          currentData = JSON.parse(line.slice(6));
+        } catch {}
+
+        if (currentEvent && currentData !== null) {
+          handleEvent(currentEvent, currentData, container);
+          if (currentEvent === 'tool_result' && currentData.name === 'generate_threat_report') {
+            renderFinalReport(lastFindings);
+          }
+          if (currentEvent === 'tool_result') {
+            lastFindings[currentData.name === 'analyse_email_headers' ? 'email_analysis'
+              : currentData.name === 'scan_url' ? 'url_scan'
+              : currentData.name === 'check_virustotal' ? 'virustotal' : currentData.name] = currentData.result;
+          }
+          if (currentEvent === 'report') {
+            renderFinalReport(currentData.findings || lastFindings);
+          }
+        }
+        currentEvent = null; currentData = null;
+      }
+    }
+  }
+
+  document.getElementById('thinking-indicator').style.display = 'none';
+  document.getElementById('pulse-dot').classList.add('done');
+  document.getElementById('feed-status').textContent = 'Investigation complete';
+  document.getElementById('reset-btn').style.display = 'inline-block';
+}
+
+function handleEvent(type, data, container) {
+  document.getElementById('thinking-indicator').style.display = 'none';
+
+  if (type === 'reasoning') {
+    const card = makeCard('💬', 'Claude reasoning', 'REASONING', 'badge-reasoning',
+      `<div class="step-text">${data.text}</div>`, false);
+    container.appendChild(card);
+  }
+
+  else if (type === 'tool_call') {
+    const names = {
+      analyse_email_headers: 'Analysing email headers',
+      scan_url: 'Scanning URL via URLScan.io',
+      check_virustotal: 'Checking VirusTotal (70+ engines)',
+      generate_threat_report: 'Generating threat report'
+    };
+    const icons = {
+      analyse_email_headers: '📧',
+      scan_url: '🌐',
+      check_virustotal: '🔬',
+      generate_threat_report: '📋'
+    };
+    const name = data.name;
+    const inputStr = JSON.stringify(data.input, null, 2);
+    const card = makeCard(
+      icons[name] || '🔧',
+      names[name] || name,
+      'TOOL CALL', 'badge-tool',
+      `<pre class="code-block">${escHtml(inputStr)}</pre>`,
+      false
+    );
+    card.dataset.toolName = name;
+    card.id = 'tool-' + name;
+    container.appendChild(card);
+  }
+
+  else if (type === 'tool_waiting') {
+    const existing = document.getElementById('tool-' + data.name);
+    if (existing) {
+      const badge = existing.querySelector('.step-badge');
+      if (badge) { badge.textContent = data.msg; badge.className = 'step-badge badge-waiting'; }
+    }
+  }
+
+  else if (type === 'tool_result') {
+    const name = data.name;
+    const existing = document.getElementById('tool-' + name);
+    if (existing) {
+      const badge = existing.querySelector('.step-badge');
+      if (badge) { badge.textContent = 'RESULT'; badge.className = 'step-badge badge-result'; }
+      const body = existing.querySelector('.step-card-body');
+      if (body && data.result && name !== 'generate_threat_report') {
+        let resultHTML = '';
+        if (name === 'analyse_email_headers') resultHTML = renderEmailResult(data.result);
+        else if (name === 'scan_url') resultHTML = renderURLResult(data.result);
+        else if (name === 'check_virustotal') resultHTML = renderVTResult(data.result);
+        else resultHTML = `<pre class="code-block">${escHtml(JSON.stringify(data.result, null, 2))}</pre>`;
+        body.innerHTML = resultHTML;
+        existing.classList.add('open');
+      }
+    }
+  }
+
+  else if (type === 'thinking') {
+    document.getElementById('thinking-indicator').style.display = 'flex';
+  }
+
+  else if (type === 'status') {
+    document.getElementById('feed-status').textContent = data.text;
+  }
+
+  else if (type === 'error') {
+    const card = makeCard('❌', 'Error', 'ERROR', 'badge-tool',
+      `<div class="step-text" style="color:var(--red)">${data.message}</div>`, true);
+    container.appendChild(card);
+  }
+}
+
+function resetUI() {
+  document.getElementById('input-panel').style.display = 'block';
+  document.getElementById('agent-feed').classList.remove('visible');
+  document.getElementById('report-panel').classList.remove('visible');
+  document.getElementById('steps-container').innerHTML = '';
+  document.getElementById('threat-input').value = '';
+  document.getElementById('char-count').textContent = '0 chars';
+  document.getElementById('pulse-dot').classList.remove('done');
+  document.getElementById('feed-status').textContent = 'Agent investigating';
+  document.getElementById('analyse-btn').disabled = false;
+  document.getElementById('reset-btn').style.display = 'none';
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
